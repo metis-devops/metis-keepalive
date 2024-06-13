@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func (w *Wallet) start(basectx context.Context, interval time.Duration) error {
 		gasPrice.Add(gasPrice, big.NewInt(1e9))
 	}
 
-	const gasLimit uint64 = 21_000
+	var gasLimit uint64 = 200_000 + rand.Uint64()%1000
 
 	balance, err := w.client.BalanceAt(newctx, w.address, nil)
 	if err != nil {
