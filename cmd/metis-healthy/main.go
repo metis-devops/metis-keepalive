@@ -64,7 +64,7 @@ func main() {
 
 		timestamp := time.Unix(int64(header.Time), 0).UTC()
 		if result != nil && result.Height.ToInt().Cmp(header.Number) >= 0 {
-			if time.Since(timestamp) > 5*time.Minute {
+			if header.Time > 0 && time.Since(timestamp) > 5*time.Minute {
 				result.Healthy = false
 			}
 			return
