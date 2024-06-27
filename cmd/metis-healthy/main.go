@@ -59,12 +59,17 @@ func main() {
 			return
 		}
 
+		if header.Time == 0 {
+			slog.Error("Ignore 0 timestamp block", "block", header.Number)
+			return
+		}
+
 		mutex.Lock()
 		defer mutex.Unlock()
 
 		timestamp := time.Unix(int64(header.Time), 0).UTC()
 		if result != nil && result.Height.ToInt().Cmp(header.Number) >= 0 {
-			if header.Time > 0 && time.Since(timestamp) > 5*time.Minute {
+			if time.Since(timestamp) > 5*time.Minute {
 				result.Healthy = false
 			}
 			return
