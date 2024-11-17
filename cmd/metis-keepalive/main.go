@@ -17,7 +17,7 @@ func main() {
 
 	flag.StringVar(&rpc, "rpc", "https://andromeda.metis.io", "rpc endpoint")
 	flag.StringVar(&key, "key", "", "raw private key")
-	flag.DurationVar(&interval, "interval", time.Second*30, "interval to send a next tx")
+	flag.DurationVar(&interval, "interval", 0, "interval to send a next tx")
 	flag.Parse()
 
 	basectx, cancel := signal.NotifyContext(
