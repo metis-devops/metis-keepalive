@@ -1,13 +1,10 @@
 name: docker
 
 on:
+  workflow_dispatch:
   push:
-    paths-ignore:
-      - ".github/**"
-    branches:
-      - "main"
     tags:
-      - "v*.*.*"
+      - "*"
 
 jobs:
   docker-build-push:
