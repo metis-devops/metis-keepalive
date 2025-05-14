@@ -1,7 +1,6 @@
 module github.com/metis-devops/metis-keepalive
 
-go 1.23
-toolchain go1.24.1
+go 1.24
 
 require github.com/ethereum/go-ethereum v1.15.10
 
