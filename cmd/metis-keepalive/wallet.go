@@ -184,13 +184,13 @@ func (w *Wallet) send(basectx context.Context, tx *types.Transaction) {
 			sendTx()
 			sendTicker.Reset(time.Minute)
 		case <-recTicker.C:
+			duration := time.Since(start)
+			if duration > time.Minute*2 {
+				slog.Warn("Discard due to timeout")
+				return
+			}
 			if receipt := waitFor(); receipt != nil {
-				t := time.Since(start)
-				if t > time.Minute*3 {
-					slog.Warn("Discard due to timeout")
-					return
-				}
-				slog.Info("Confirmed", "duration", t.String(), "height", receipt.BlockNumber)
+				slog.Info("Confirmed", "duration", duration.String(), "height", receipt.BlockNumber)
 				return
 			}
 		}
