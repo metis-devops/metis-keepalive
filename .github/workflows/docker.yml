@@ -41,7 +41,7 @@ jobs:
           target: keepalive
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
 
       - name: Docker meta for metis-healthy
         id: docker-meta-healthy
@@ -58,4 +58,4 @@ jobs:
           tags: ${{ steps.docker-meta-healthy.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
