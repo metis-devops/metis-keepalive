@@ -18,7 +18,8 @@ import (
 )
 
 type Wallet struct {
-	client *ethclient.Client
+	client      *ethclient.Client
+	startHeight uint64
 
 	eip155  types.Signer
 	prvkey  *ecdsa.PrivateKey
@@ -26,7 +27,7 @@ type Wallet struct {
 	nonce   uint64
 }
 
-func NewWallet(basectx context.Context, prvkey, rpc string) (*Wallet, error) {
+func NewWallet(basectx context.Context, prvkey, rpc string, startHeight uint64) (*Wallet, error) {
 	newctx, cancel := context.WithTimeout(basectx, time.Second*5)
 	defer cancel()
 
@@ -48,13 +49,14 @@ func NewWallet(basectx context.Context, prvkey, rpc string) (*Wallet, error) {
 	publicKey := privateKey.Public()
 
 	wallet := &Wallet{
-		client:  client,
-		eip155:  types.NewEIP155Signer(chainId),
-		address: crypto.PubkeyToAddress(*publicKey.(*ecdsa.PublicKey)),
-		prvkey:  privateKey,
+		client:      client,
+		eip155:      types.NewEIP155Signer(chainId),
+		address:     crypto.PubkeyToAddress(*publicKey.(*ecdsa.PublicKey)),
+		prvkey:      privateKey,
+		startHeight: startHeight,
 	}
 
-	slog.Info("chain info", "address", wallet.address, "chainId", chainId)
+	slog.Info("chain info", "address", wallet.address, "chainId", chainId, "startHeight", startHeight)
 	return wallet, nil
 }
 
@@ -79,15 +81,18 @@ func (w *Wallet) start(basectx context.Context, interval time.Duration) error {
 	newctx, cancel := context.WithTimeout(basectx, time.Second*10)
 	defer cancel()
 
-	if interval != 0 {
+	if interval != 0 || w.startHeight > 0 {
 		header, err := w.client.HeaderByNumber(newctx, nil)
 		if err != nil {
 			return err
 		}
 
-		blockTime := time.Unix(int64(header.Time), 0).UTC()
-		if time.Since(blockTime) < interval {
+		if blockTime := time.Unix(int64(header.Time), 0).UTC(); interval > 0 && time.Since(blockTime) < interval {
 			slog.Info("No need to send a tx", "block", header.Number, "time", blockTime)
+			return nil
+		}
+		if w.startHeight > 0 && header.Number.Uint64() < w.startHeight {
+			slog.Info("No need to send a tx", "block", header.Number, "startHeight", w.startHeight)
 			return nil
 		}
 	}
