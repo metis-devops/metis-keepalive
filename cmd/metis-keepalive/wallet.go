@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -19,6 +20,7 @@ import (
 
 type Wallet struct {
 	client      *ethclient.Client
+	bridge      *ethclient.Client
 	startHeight uint64
 
 	eip155  types.Signer
@@ -27,7 +29,7 @@ type Wallet struct {
 	nonce   uint64
 }
 
-func NewWallet(basectx context.Context, prvkey, rpc string, startHeight uint64) (*Wallet, error) {
+func NewWallet(basectx context.Context, prvkey, rpc, bridge string, startHeight uint64) (*Wallet, error) {
 	newctx, cancel := context.WithTimeout(basectx, time.Second*5)
 	defer cancel()
 
@@ -35,6 +37,15 @@ func NewWallet(basectx context.Context, prvkey, rpc string, startHeight uint64) 
 	client, err := ethclient.DialContext(newctx, rpc)
 	if err != nil {
 		return nil, err
+	}
+
+	var bridgeClient = client
+	if bridge != "" {
+		slog.Info("connecting", "bridge", bridge)
+		bridgeClient, err = ethclient.DialContext(newctx, bridge)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	chainId, err := client.ChainID(newctx)
@@ -50,6 +61,7 @@ func NewWallet(basectx context.Context, prvkey, rpc string, startHeight uint64) 
 
 	wallet := &Wallet{
 		client:      client,
+		bridge:      bridgeClient,
 		eip155:      types.NewEIP155Signer(chainId),
 		address:     crypto.PubkeyToAddress(*publicKey.(*ecdsa.PublicKey)),
 		prvkey:      privateKey,
@@ -115,7 +127,7 @@ func (w *Wallet) start(basectx context.Context, interval time.Duration) error {
 		gasPrice.Add(gasPrice, big.NewInt(1e9))
 	}
 
-	var gasLimit uint64 = 200_000 + rand.Uint64()%1000
+	var gasLimit = 200_000 + rand.Uint64()%1000
 
 	balance, err := w.client.BalanceAt(newctx, w.address, nil)
 	if err != nil {
@@ -123,7 +135,7 @@ func (w *Wallet) start(basectx context.Context, interval time.Duration) error {
 	}
 
 	if balance.Cmp(new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))) < 0 {
-		return fmt.Errorf("No enough balance to send the tx")
+		return errors.New("no enough balance to send the tx")
 	}
 
 	w.send(
@@ -153,7 +165,7 @@ func (w *Wallet) send(basectx context.Context, tx *types.Transaction) {
 
 		slog.Info("Resending")
 
-		err := w.client.SendTransaction(newctx, tx)
+		err := w.bridge.SendTransaction(newctx, tx)
 		if err != nil {
 			slog.Error("Failed to send Tx", "err", err)
 		}
