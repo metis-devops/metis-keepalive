@@ -1,18 +1,12 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.25-alpine as compiler
+FROM golang:1.25-alpine AS compiler
 RUN apk add --no-cache make gcc musl-dev linux-headers git ca-certificates
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build go install ./cmd/...
 
-FROM alpine:latest as keepalive
+FROM alpine:latest
 RUN apk add --no-cache jq
 COPY --from=compiler /go/bin/* /usr/local/bin/
 COPY --from=compiler /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENTRYPOINT [ "metis-keepalive" ]
-
-FROM alpine:latest as healthy
-RUN apk add --no-cache jq
-COPY --from=compiler /go/bin/* /usr/local/bin/
-COPY --from=compiler /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-ENTRYPOINT [ "metis-healthy" ]
