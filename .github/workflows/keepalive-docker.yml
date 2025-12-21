@@ -47,6 +47,7 @@ jobs:
           context: .
           provenance: false
           sbom: false
+          target: keepalive
           annotations: ${{ steps.meta.outputs.annotations }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=buildkit-${{ runner.os }}-${{ runner.arch }}
